@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:sdp_transform/sdp_transform.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,6 +39,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final sdpController = TextEditingController();
 
+  bool offer = false;
+  late RTCPeerConnection peerConnection;
+
+  late MediaStream localStream;
+
   @override
   dispose() {
     localRenderer.dispose();
@@ -47,7 +55,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     initRenderers();
-    getUserMedia();
+    createMyPeerConnection().then((pc) {
+      peerConnection = pc;
+    });
     super.initState();
   }
 
@@ -65,6 +75,57 @@ class _MyHomePageState extends State<MyHomePage> {
     MediaStream stream = await navigator.getUserMedia(mediaConstraints);
 
     localRenderer.srcObject = stream;
+    return stream;
+  }
+
+  createMyPeerConnection() async {
+    Map<String, dynamic> configuration = {
+      "iceServers": [
+        {"url": "stun:stun.l.google.com:19302"},
+      ]
+    };
+    final Map<String, dynamic> offerSdpConstraints = {
+      "mandatory": {
+        "OfferToReceiverAudio": true,
+        "OfferToReceiverVideo": true,
+      },
+      "optional": [],
+    };
+
+    localStream = await getUserMedia();
+    RTCPeerConnection peerConnection =
+        await createPeerConnection(configuration, offerSdpConstraints);
+
+    peerConnection.addStream(localStream);
+
+    peerConnection.onIceCandidate = (e) {
+      if (e.candidate != null) {
+        print(json.encode({
+          'candidate': e.candidate.toString(),
+          'sdpMid': e.sdpMid.toString(),
+          'sdpMlineIndex': e.sdpMLineIndex.toString()
+        }));
+      }
+    };
+
+    peerConnection.onIceConnectionState = (e) {
+      print(e);
+    };
+
+    peerConnection.onAddStream = (stream) {
+      print('addStream${stream.id}');
+      remoteRenderer.srcObject = stream;
+    };
+
+    return peerConnection;
+  }
+
+  void createOffer() async {
+    RTCSessionDescription description =
+        await peerConnection.createOffer({'offerToReceiveVideo': 1});
+    var session = parse(description.sdp.toString());
+    print(json.encode(session));
+    offer = true;
   }
 
   SizedBox videoRenderers() => SizedBox(
@@ -76,14 +137,20 @@ class _MyHomePageState extends State<MyHomePage> {
               key: const Key('local'),
               margin: const EdgeInsets.all(5.0),
               decoration: const BoxDecoration(color: Colors.black),
-              child: RTCVideoView(localRenderer),
+              child: RTCVideoView(
+                localRenderer,
+                mirror: true,
+              ),
             )),
             Flexible(
                 child: Container(
               key: const Key('remote'),
               margin: const EdgeInsets.all(5.0),
               decoration: const BoxDecoration(color: Colors.black),
-              child: RTCVideoView(remoteRenderer),
+              child: RTCVideoView(
+                remoteRenderer,
+                mirror: true,
+              ),
             ))
           ],
         ),
@@ -92,15 +159,21 @@ class _MyHomePageState extends State<MyHomePage> {
   Row offerButtons() => Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          RaisedButton(
-            onPressed: null,
-            child: Text('Offer'),
-            color: Colors.amber,
+          ElevatedButton(
+            onPressed: createOffer,
+            style: ElevatedButton.styleFrom(
+              primary: Colors.amber,
+              onPrimary: Colors.white,
+            ),
+            child: const Text('Offer'),
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: null,
-            child: Text('Answer'),
-            color: Colors.amber,
+            style: ElevatedButton.styleFrom(
+              primary: Colors.amber,
+              onPrimary: Colors.white,
+            ),
+            child: const Text('Answer'),
           )
         ],
       );
@@ -117,16 +190,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Row sdpCandidateButton() => Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: const [
-          RaisedButton(
+        children: [
+          ElevatedButton(
             onPressed: null, //setRemoteDescription,
-            color: Colors.amber,
-            child: Text('Set Remote Description'),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.amber,
+              onPrimary: Colors.white,
+            ),
+            child: const Text('Set Remote Description'),
           ),
-          RaisedButton(
+          ElevatedButton(
             onPressed: null, // setCandidate,
-            color: Colors.amber,
-            child: Text('Set Candidate'),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.amber,
+              onPrimary: Colors.white,
+            ),
+            child: const Text('Set Candidate'),
           )
         ],
       );
