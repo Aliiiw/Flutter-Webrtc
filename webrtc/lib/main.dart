@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sdp_transform/sdp_transform.dart';
@@ -126,6 +125,23 @@ class _MyHomePageState extends State<MyHomePage> {
     var session = parse(description.sdp.toString());
     print(json.encode(session));
     offer = true;
+    peerConnection.setLocalDescription(description);
+  }
+
+  void setRemoteDescription() async {
+    String jsonString = sdpController.text;
+    dynamic session = await jsonDecode(jsonString);
+    String sdp = write(session, null);
+    RTCSessionDescription description =
+        RTCSessionDescription(sdp, offer ? 'answer' : 'offer');
+    print(description.toMap());
+    await peerConnection.setRemoteDescription(description);
+  }
+
+  void createAnswer() async {
+    RTCSessionDescription description =
+        await peerConnection.createAnswer({'offerToReceiveVideo': 1});
+    var session = parse(description.sdp.toString());
   }
 
   SizedBox videoRenderers() => SizedBox(
@@ -163,15 +179,15 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: createOffer,
             style: ElevatedButton.styleFrom(
               primary: Colors.amber,
-              onPrimary: Colors.white,
+              onPrimary: Colors.black,
             ),
             child: const Text('Offer'),
           ),
           ElevatedButton(
-            onPressed: null,
+            onPressed: createAnswer,
             style: ElevatedButton.styleFrom(
               primary: Colors.amber,
-              onPrimary: Colors.white,
+              onPrimary: Colors.black,
             ),
             child: const Text('Answer'),
           )
@@ -192,10 +208,10 @@ class _MyHomePageState extends State<MyHomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton(
-            onPressed: null, //setRemoteDescription,
+            onPressed: setRemoteDescription, //setRemoteDescription,
             style: ElevatedButton.styleFrom(
               primary: Colors.amber,
-              onPrimary: Colors.white,
+              onPrimary: Colors.black,
             ),
             child: const Text('Set Remote Description'),
           ),
@@ -203,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: null, // setCandidate,
             style: ElevatedButton.styleFrom(
               primary: Colors.amber,
-              onPrimary: Colors.white,
+              onPrimary: Colors.black,
             ),
             child: const Text('Set Candidate'),
           )
