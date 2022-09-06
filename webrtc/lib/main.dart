@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'WebRTC',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -142,6 +142,18 @@ class _MyHomePageState extends State<MyHomePage> {
     RTCSessionDescription description =
         await peerConnection.createAnswer({'offerToReceiveVideo': 1});
     var session = parse(description.sdp.toString());
+    print(json.encode(session));
+
+    peerConnection.setLocalDescription(description);
+  }
+
+  void setCandidate() async {
+    String jsonString = sdpController.text;
+    dynamic session = await jsonDecode(jsonString);
+    print(session['candidate']);
+    dynamic candidate = RTCIceCandidate(
+        session['candidate'], session['sdpMid'], session['sdpMLineIndex']);
+    await peerConnection.addCandidate(candidate);
   }
 
   SizedBox videoRenderers() => SizedBox(
@@ -216,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: const Text('Set Remote Description'),
           ),
           ElevatedButton(
-            onPressed: null, // setCandidate,
+            onPressed: setCandidate, // setCandidate,
             style: ElevatedButton.styleFrom(
               primary: Colors.amber,
               onPrimary: Colors.black,
