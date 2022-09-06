@@ -34,10 +34,13 @@ class _MyHomePageState extends State<MyHomePage> {
   final localRenderer = RTCVideoRenderer();
   final remoteRenderer = RTCVideoRenderer();
 
+  final sdpController = TextEditingController();
+
   @override
   dispose() {
     localRenderer.dispose();
     remoteRenderer.dispose();
+    sdpController.dispose();
     super.dispose();
   }
 
@@ -102,6 +105,32 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       );
 
+  Padding sdpCandidate() => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: sdpController,
+          keyboardType: TextInputType.multiline,
+          maxLines: 4,
+          maxLength: TextField.noMaxLength,
+        ),
+      );
+
+  Row sdpCandidateButton() => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: const [
+          RaisedButton(
+            onPressed: null, //setRemoteDescription,
+            color: Colors.amber,
+            child: Text('Set Remote Description'),
+          ),
+          RaisedButton(
+            onPressed: null, // setCandidate,
+            color: Colors.amber,
+            child: Text('Set Candidate'),
+          )
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,8 +141,8 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             videoRenderers(),
             offerButtons(),
-            //     sdpCandidate();
-            // sdpCandidateButton();
+            sdpCandidate(),
+            sdpCandidateButton(),
           ],
         ));
   }
